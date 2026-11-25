@@ -155,6 +155,11 @@
           <button type="button" data-dur="60"></button><button type="button" data-dur="90"></button><button type="button" data-dur="120"></button>
         </div>
         <div class="ruler" id="wDur"></div>
+        <div class="flabel">Alert</div>
+        <div class="durchips alerts" id="tsAlert" role="group" aria-label="Alert before it starts">
+          <button type="button" data-alert="-1">None</button><button type="button" data-alert="0">At start</button><button type="button" data-alert="5">5m</button>
+          <button type="button" data-alert="15">15m</button><button type="button" data-alert="30">30m</button><button type="button" data-alert="60">1h</button>
+        </div>
       </div>
       <div class="flabel">Repeat</div>
       <div class="seg" id="tsRepeat" role="group" aria-label="Repeat">
@@ -222,6 +227,8 @@
     <div class="seg" id="setTheme" role="group" aria-label="Appearance"><button type="button" data-theme="auto">Match phone</button><button type="button" data-theme="light">Light</button><button type="button" data-theme="dark">Dark</button></div>
     <label class="setrow" for="setHaptics"><span><b>Haptics</b><small>A tiny tap as wheels turn and tasks are ticked. On iPhone this needs iOS 18 or later.</small></span>
       <input type="checkbox" id="setHaptics" switch></label>
+    <div class="setrow"><span><b>Notifications</b><small id="setNotifyNote">A nudge 5 minutes before each task starts.</small></span>
+      <span class="setbtns"><button type="button" class="pillbtn" id="setNotifyTest" hidden>Send test</button><button type="button" class="pillbtn on" id="setNotify">Turn on</button></span></div>
     <div class="flabel">Account</div>
     <div class="setrow"><span><b id="setEmail"></b><small>Your entries are private to this account.</small></span><button type="button" class="pillbtn" id="setSignOut">Sign out</button></div>
     <p class="note">Tip: type naturally when adding, like <i>“Read every weekday at 9:30pm for 20 min”</i>. Long-press a task on the timeline to drag it to a new time, or onto the bin to delete it.</p>

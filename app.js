@@ -373,8 +373,9 @@ function syncDest(){
 }
 function syncAnytime(){
   document.querySelectorAll("#tsTimeMode button").forEach(b=>b.setAttribute("aria-pressed",(b.dataset.tm==="any")===S.anytime));
-  $("tsTimeBlock").hidden=S.anytime;syncRange();
+  $("tsTimeBlock").hidden=S.anytime;syncRange();syncAlert();
 }
+function syncAlert(){document.querySelectorAll("#tsAlert button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.alert===S.alert))}
 function syncRepeat(){
   document.querySelectorAll("#tsRepeat button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.rep===S.repeat));
   const rep=S.repeat!=="once";$("tsRepOpts").hidden=!rep;
@@ -408,7 +409,7 @@ function openTaskSheet(opts){
   const defStart=isTodaySel?Math.min(1410,Math.ceil((nowMin()+5)/15)*15):9*60;
   S={mode:"new",dest:opts.dest||(view==="inbox"?"inbox":view==="goals"?"goal":"timeline"),title:opts.title||"",cleanTitle:"",icon:"🗒️",iconAuto:true,area:"personal",
     date:opts.date||sel,anytime:false,start:opts.start!=null?opts.start:defStart,dur:opts.dur||30,repeat:"once",interval:1,days:[dow(parse(opts.date||sel))],until:"",
-    goalKind:"goal",goalDate:"",subs:[],notes:"",parent:opts.parent||"",est:0,nlp:{},src:null};
+    goalKind:"goal",goalDate:"",subs:[],notes:"",parent:opts.parent||"",est:0,alert:5,nlp:{},src:null};
   if(opts.edit)loadForEdit(opts.edit);
   $("tsHead").textContent=S.mode==="edit"?(S.src.type==="rt"?"Edit routine":"Edit task"):"New task";
   $("tsTitle").value=S.title;$("tsNotes").value=S.notes;
@@ -426,14 +427,14 @@ function loadForEdit(e){
   if(e.type==="task"){
     const t=Store.get("tasks",e.id);if(!t)return;
     Object.assign(S,{title:t.title||"",icon:t.icon||suggestIcon(t.title,t.area),iconAuto:!t.icon,area:t.area||"personal",notes:t.notes||"",parent:t.parent||"",
-      subs:(t.subtasks||[]).map(s=>({...s})),est:t.est||0});
+      subs:(t.subtasks||[]).map(s=>({...s})),est:t.est||0,alert:typeof t.alert==="number"?t.alert:5});
     if(t.kind==="goal"||t.kind==="big"){S.dest="goal";S.goalKind=t.kind;S.goalDate=t.due||"";if(t.schedDate&&t.schedDur){S.date=t.schedDate;S.start=t.schedStart;S.dur=t.schedDur}}
     else if(isInbox(t)){S.dest="inbox";if(t.est)S.dur=t.est}
     else{S.dest="timeline";S.date=t.schedDate||t.due||sel;S.anytime=!(t.schedDate&&t.schedDur);if(!S.anytime){S.start=t.schedStart;S.dur=t.schedDur}}
   }else{
     const r=Store.get("routines",e.id);if(!r)return;const R=rtRule(r);
     Object.assign(S,{title:r.title||"",icon:r.icon||suggestIcon(r.title,r.area),iconAuto:!r.icon,area:r.area||"personal",notes:r.notes||"",dest:"timeline",
-      date:e.k||sel,anytime:!rtTimed(r),start:rtTimed(r)?r.start:9*60,dur:rtTimed(r)?r.dur:30,repeat:R.freq,interval:R.interval,days:R.days.slice(),until:r.until||"",
+      date:e.k||sel,alert:typeof r.alert==="number"?r.alert:5,anytime:!rtTimed(r),start:rtTimed(r)?r.start:9*60,dur:rtTimed(r)?r.dur:30,repeat:R.freq,interval:R.interval,days:R.days.slice(),until:r.until||"",
       subs:(r.subtasks||[]).map(s=>({...s,done:((r.subDone||{})[e.k]||[]).includes(s.id)}))});
   }
 }
@@ -490,7 +491,7 @@ function autoGrow(){const t=$("tsTitle");t.style.height="auto";t.style.height=Ma
 /* --- save --- */
 function buildTaskData(base){
   const title=(S.cleanTitle||S.title).trim();
-  const common={title,icon:S.icon,area:S.area,notes:S.notes.trim(),subtasks:S.subs.filter(s=>s.t.trim()).map(s=>({id:s.id||newId("s"),t:s.t.trim(),done:!!s.done})),parent:S.parent||""};
+  const common={title,icon:S.icon,area:S.area,alert:S.alert,notes:S.notes.trim(),subtasks:S.subs.filter(s=>s.t.trim()).map(s=>({id:s.id||newId("s"),t:s.t.trim(),done:!!s.done})),parent:S.parent||""};
   const b=Object.assign({kind:"day",due:"",schedDate:"",schedStart:0,schedDur:0,est:0,done:false,doneAt:0,priority:"med",progress:0,createdAt:Date.now()},base||{},common);
   if(S.dest==="inbox"){Object.assign(b,{kind:"day",due:"",schedDate:"",schedStart:0,schedDur:0,est:S.est||0})}
   else if(S.dest==="goal"){Object.assign(b,{kind:S.goalKind,due:S.goalDate||""});if(!(base&&base.kind===S.goalKind))b.progress=b.progress||0}
@@ -500,7 +501,7 @@ function buildTaskData(base){
 function buildRoutineData(base){
   const title=(S.cleanTitle||S.title).trim();
   const r=Object.assign({done:{},skip:{},subDone:{},createdAt:Date.now()},base||{},{
-    title,icon:S.icon,area:S.area,notes:S.notes.trim(),freq:S.repeat,interval:S.interval,
+    title,icon:S.icon,area:S.area,alert:S.alert,notes:S.notes.trim(),freq:S.repeat,interval:S.interval,
     days:S.repeat==="weekly"?S.days.slice().sort((a,b)=>a-b):[dow(parse(S.date))],
     start:S.anytime?-1:S.start,dur:S.anytime?0:S.dur,from:(base&&base.from&&S.scope==="all")?base.from:S.date,until:S.until||"",
     subtasks:S.subs.filter(s=>s.t.trim()).map(s=>({id:s.id||newId("s"),t:s.t.trim()}))});
@@ -572,6 +573,7 @@ $("taskSheet").addEventListener("click",e=>{
   const st=e.target.closest("[data-step]");if(st){S.interval=Math.max(1,Math.min(12,S.interval+ +st.dataset.step));syncRepeat();H("tick");return}
   const en=e.target.closest("[data-end]");if(en){S.until=en.dataset.end==="on"?(S.until||iso(addDays(parse(S.date),28))):"";syncRepeat();H("select");return}
   const gk=e.target.closest("[data-gk]");if(gk){S.goalKind=gk.dataset.gk;syncDest();H("select");return}
+  const al=e.target.closest("[data-alert]");if(al){S.alert=+al.dataset.alert;syncAlert();H("select");return}
   const es=e.target.closest("[data-est]");if(es){S.est=+es.dataset.est;syncDest();H("select");return}
   const act=e.target.closest("[data-act]");if(!act)return;
   const li=act.closest("li[data-i]"),i=li?+li.dataset.i:-1;
@@ -781,7 +783,57 @@ function syncSettings(){
   let t="auto";try{t=localStorage.getItem("life-board-theme")||"auto"}catch(e){}
   document.querySelectorAll("#setTheme button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.theme===t));
   $("setHaptics").checked=H.isEnabled();$("setEmail").textContent=Store.email||"";
+  syncNotify();
 }
+/* ---------- notifications ---------- */
+const VAPID_PUBLIC="BOsFFHo-F2SOmG4AynY9PWvrAekIp4vL3_swcq0yVctyZ6BQfgzXT86kQlJ3VPORFaCBCn7j96JTdHukzFhvV1M";
+const pushSupported=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function b64ToBytes(b){const p="=".repeat((4-b.length%4)%4),s=atob((b+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0))}
+async function currentSub(){if(!pushSupported())return null;const reg=await navigator.serviceWorker.getRegistration();return reg?reg.pushManager.getSubscription():null}
+async function syncNotify(msg){
+  const btn=$("setNotify"),test=$("setNotifyTest"),note=$("setNotifyNote");
+  btn.disabled=false;test.hidden=true;
+  if(!pushSupported()){
+    btn.hidden=true;
+    note.textContent=isIOS()&&!standalone()?"Open Life Board from its home-screen icon to turn these on.":"This browser can't receive notifications. On iPhone, use the home-screen app (iOS 16.4 or later).";return}
+  btn.hidden=false;
+  if(Notification.permission==="denied"){btn.hidden=true;note.textContent="Blocked for Life Board. Allow them in your phone's Settings → Notifications → Life Board.";return}
+  const sub=await currentSub();
+  if(sub&&Notification.permission==="granted"){btn.textContent="Turn off";btn.classList.remove("on");test.hidden=false;note.textContent=msg||"On for this device. You'll get a nudge before each task (5 minutes unless you change it on the task)."}
+  else{btn.textContent="Turn on";btn.classList.add("on");note.textContent=msg||"A nudge 5 minutes before each task starts."}
+}
+async function enableNotify(){
+  const btn=$("setNotify");btn.disabled=true;$("setNotifyNote").textContent="Asking your phone…";
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){H("warn");return syncNotify(perm==="denied"?undefined:"Notifications weren't allowed. Tap Turn on to try again.")}
+    const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(VAPID_PUBLIC)});
+    const j=sub.toJSON();
+    const {error}=await Store.sb.from("push_subs").upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,
+      tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"Australia/Sydney",ua:navigator.userAgent.slice(0,160)},{onConflict:"endpoint"});
+    if(error)throw error;
+    H("success");await syncNotify();toast("Notifications on for this device");
+  }catch(e){console.error(e);H("error");syncNotify("Couldn't turn them on: "+(e&&e.message||e))}
+}
+async function disableNotify(){
+  const sub=await currentSub();
+  if(sub){const ep=sub.endpoint;try{await sub.unsubscribe()}catch(e){}await Store.sb.from("push_subs").delete().eq("endpoint",ep)}
+  H("light");syncNotify();toast("Notifications off for this device");
+}
+$("setNotify").addEventListener("click",async()=>{const sub=await currentSub();if(sub&&Notification.permission==="granted")disableNotify();else enableNotify()});
+$("setNotifyTest").addEventListener("click",async()=>{
+  const t=$("setNotifyTest");t.disabled=true;t.textContent="Sending…";
+  try{const {data,error}=await Store.sb.functions.invoke("send-alerts",{body:{test:true}});if(error)throw error;
+    H("success");syncNotify(data&&data.sent?"Test sent. It should arrive in a few seconds.":"No devices to send to yet. Tap Turn off, then Turn on again.")}
+  catch(e){H("error");syncNotify("Test didn't send: "+(e&&e.message||e))}
+  finally{t.disabled=false;t.textContent="Send test"}
+});
+/* keep this device's subscription saved (phones occasionally rotate it) */
+async function refreshSub(){try{const sub=await currentSub();if(!sub||Notification.permission!=="granted")return;const j=sub.toJSON();
+  await Store.sb.from("push_subs").upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"Australia/Sydney",ua:navigator.userAgent.slice(0,160)},{onConflict:"endpoint"})}catch(e){}}
 (function(){let t=null;try{t=localStorage.getItem("life-board-theme")}catch(e){}if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)})();
 $("gearBtn").addEventListener("click",()=>{syncSettings();openSheet("settingsSheet");H("select")});
 $("setTheme").addEventListener("click",e=>{const b=e.target.closest("[data-theme]");if(!b)return;applyTheme(b.dataset.theme);H("select")});
@@ -817,7 +869,7 @@ $("authForm").addEventListener("submit",async e=>{
     amsg(/invalid login/i.test(t)?"That email and password don't match.":/not confirmed/i.test(t)?"Confirm your email first using the link we sent.":/rate limit|too many/i.test(t)?"Too many attempts. Wait a few minutes.":/fetch|network/i.test(t)?"Can't reach the server. Check your connection.":t,"err")}
   finally{go.disabled=false}
 });
-function signedIn(session){$("auth").hidden=true;document.body.classList.remove("signed-out");if(started)return;started=true;Store.start(session)}
+function signedIn(session){$("auth").hidden=true;document.body.classList.remove("signed-out");if(started)return;started=true;Store.start(session).then(refreshSub)}
 Store.sb.auth.onAuthStateChange((ev,session)=>{setTimeout(()=>{
   if(ev==="PASSWORD_RECOVERY"){showAuth("reset");return}
   if(authMode==="reset"&&!$("auth").hidden)return;
@@ -830,7 +882,9 @@ Store.onChange(render);
 Store.onStatus(s=>{const el=$("syncState");el.dataset.s=s;el.textContent=s==="saving"?"Saving…":s==="offline"?"Offline · will sync":s==="error"?"Couldn't save one change":"";});
 initWheels();
 document.querySelectorAll("#tsDurChips button").forEach(b=>b.textContent=fmtDur(+b.dataset.dur));
+(function(){const d=new URLSearchParams(location.search).get("day");if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)){sel=d;history.replaceState(null,"",location.pathname+location.hash)}})();
 setView((location.hash||"").slice(1)||"timeline");
+if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("message",e=>{const d=e.data&&e.data.day;if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)){if(view!=="timeline")setView("timeline");goDay(d,false);requestAnimationFrame(scrollToNow)}});
 syncThemeColor();
 /* keep the "now" line and live task honest */
 setInterval(()=>{if(view==="timeline"&&!dragging&&!sheetOpen()){if(iso(today())!==lastDay){lastDay=iso(today())}renderTimeline()}},60000);

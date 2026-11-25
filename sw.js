@@ -1,5 +1,5 @@
 /* Life Board offline shell. Bump VERSION whenever the app files change. */
-const VERSION = "lb-v3";
+const VERSION = "lb-v4";
 const SHELL = ["./", "./index.html", "./app.css", "./app.js", "./wheel.js", "./store.js", "./supabase.js",
   "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon-32.png"];
 
@@ -37,4 +37,24 @@ self.addEventListener("fetch", e => {
       const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return r;
     })));
   }
+});
+
+/* ---------- notifications ---------- */
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: "Life Board", body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Life Board", {
+    body: d.body || "", tag: d.tag || undefined, renotify: true,
+    icon: "icon-192.png", badge: "icon-192.png",
+    data: { url: d.url || "./#timeline" }
+  }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const target = new URL(e.notification.data && e.notification.data.url || "./#timeline", self.registration.scope).href;
+  const day = new URL(target).searchParams.get("day");
+  e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) { if (c.url.startsWith(self.registration.scope)) { c.postMessage({ day }); return c.focus(); } }
+    return clients.openWindow(target);
+  }));
 });

@@ -395,6 +395,9 @@ body.sheet-open .toast{bottom:calc(24px + env(safe-area-inset-bottom))}
 .setrow b{font-weight:500;overflow-wrap:anywhere}
 .setrow small{color:var(--muted);font-size:13.5px;font-style:italic}
 .setrow input[type=checkbox]{width:46px;height:28px;accent-color:var(--ok);flex:none}
+.setbtns{display:flex;gap:6px;flex:none}
+.pillbtn.on{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.pillbtn:disabled{opacity:.5}
 #settingsSheet .sh-body{padding-bottom:calc(22px + env(safe-area-inset-bottom))}
 
 /* ================= SIGN-IN ================= */

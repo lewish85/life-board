@@ -102,3 +102,14 @@ Routines never count as overdue.
 | `store.js` | Supabase sign-in, private data, offline outbox, live sync |
 | `app.js` | everything else: timeline, inbox, goals, task sheet, gestures |
 | `sw.js` | offline app shell (bump `VERSION` on every release) |
+
+## 9. Notifications
+- **Alert per task or routine:** None · At start · 5m · 15m · 30m · 1h. The default is **5 minutes before**, and older entries without the field also get 5 minutes.
+- **What arrives:** the title is the task's icon and name ("🏋️ Gym"). The body is a coloured dot for its area, the time range, and how soon it starts ("🟢 Health · 6:30–7:30 pm · in 5 min"). iPhone always shows the app icon beside a notification and doesn't allow a custom colour, so the area colour is shown as the dot. Tapping a notification opens the app on that day.
+- **How it works:**
+  1. Settings → Notifications → **Turn on** asks the phone for permission and saves that device's push address to `push_subs`. Rows are private to the owner.
+  2. A Supabase scheduled job (`pg_cron`, every minute) calls the `send-alerts` edge function.
+  3. The function works out local time (Australia/Sydney, daylight saving included), finds tasks and routines whose alert time has arrived (with a 10-minute catch-up if the job runs late), sends each one once (tracked in `push_sent`), and removes devices that have unsubscribed.
+- **Keys:** the signing keys (VAPID) and the scheduler key are stored in Supabase Vault. The app only contains the public key.
+- **Requirements:** on iPhone, iOS 16.4+ and the app opened from its home-screen icon. On Android, Chrome or any modern browser.
+- **Source:** `supabase/functions/send-alerts/` (`alerts.ts` holds the timing logic and can be tested without a network).
