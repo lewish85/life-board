@@ -2,7 +2,8 @@
 
 A diary-style planner that installs on your phone like an app: today's calendar, routines, tasks, goals and big deadlines.
 
-- Static site served by GitHub Pages (`index.html`, `sw.js`, `manifest.webmanifest`, icons).
+- Static site served by GitHub Pages: `index.html`, `app.css`, `app.js`, `wheel.js`, `store.js`, `sw.js`, `manifest.webmanifest`, icons.
+- Interaction design (modelled on Structured): see `DESIGN.md`.
 - Data and sign-in: Supabase project `life-board`. Each entry is one row in `public.docs`; row-level security keeps rows private to their owner.
 - The key in `index.html` is Supabase's *publishable* key. It is designed to be public; access is controlled by the security rules on the database.
 
