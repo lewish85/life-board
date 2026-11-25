@@ -140,10 +140,12 @@ function renderHeader(){
 
 /* ================= TIMELINE ================= */
 const pillH=d=>Math.round(Math.max(46,Math.min(176,40+d*1.05)));
-const gapH=m=>Math.round(Math.max(26,Math.min(96,m*.55)));
-const GAP_LINES=[
-  m=>`Spare ${fmtDur(m)}? Plan a breather.`,m=>`${fmtDur(m)} free. Tap to fill it.`,m=>`Open ${fmtDur(m)}. Something from your Inbox?`,m=>`${fmtDur(m)} to yourself.`
-];
+/* gaps that offer an "Add task" button get enough room for it */
+const gapH=m=>m>=30?Math.round(Math.max(92,Math.min(150,m*.5))):Math.round(Math.max(44,Math.min(80,m*.9)));
+const CLOCK=`<svg class="gapclock" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.2l2.6 1.6M9.5 2.8h5"/></svg>`;
+const GAP_SHORT=[d=>`A quick ${d} to breathe.`,d=>`${d} spare. Stretch your legs?`,d=>`Just ${d} between things.`,d=>`${d} for a cup of tea.`];
+const GAP_LONG=[d=>`${d} of open page.`,d=>`${d} free to make something.`,d=>`Room for something good: ${d}.`,d=>`${d} to chip away at a goal.`,d=>`${d} with nothing planned.`];
+function gapLine(s,m){const d=`<b class="gapdur">${fmtDur(m)}</b>`;const L=m>=45?GAP_LONG:GAP_SHORT;return L[(s/5|0)%L.length](d)}
 function renderTimeline(){
   const k=sel,td=iso(today()),isToday=k===td,now=nowMin();
   const {timed,anytime}=dayItems(k);
@@ -164,10 +166,11 @@ function renderTimeline(){
   /* timed list with gaps */
   let h="",prevEnd=null,first=true;
   const gapRow=(s,e,cls)=>{const m=e-s;if(m<10)return "";const nowIn=isToday&&now>=s&&now<e;
-    const line=GAP_LINES[(s/5|0)%GAP_LINES.length](m);
-    return `<li class="tl-gap${cls?" "+cls:""}${nowIn?" now":""}" style="--h:${gapH(m)}px">
+    const fillMin=Math.min(m,60),from=nowIn?Math.ceil(now/5)*5:s;
+    return `<li class="tl-gap${cls?" "+cls:""}${nowIn?" now":""}${m>=30?" big":""}" style="--h:${gapH(m)}px">
       <div class="tl-time">${nowIn?`<b>${fmtTime(now,false)}</b>`:""}</div><div class="tl-rail">${nowIn?`<span class="nowdot" style="top:${Math.round((now-s)/m*100)}%"></span>`:""}</div>
-      <button type="button" class="gapbtn" data-gap="${s},${Math.min(m,60)}">${esc(line)}</button></li>`};
+      <div class="gapcol"><button type="button" class="gapbtn" data-gap="${from},${Math.min(fillMin,e-from)}">${CLOCK}<span>${gapLine(s,m)}</span></button>
+      ${m>=30?`<button type="button" class="gapadd" data-gap="${from},${Math.min(fillMin,e-from)}"><span class="gapplus" aria-hidden="true">+</span>Add task</button>`:""}</div></li>`};
   if(isToday&&timed.length&&now<timed[0].start&&timed[0].start-now>=10){h+=gapRow(Math.ceil(now/5)*5,timed[0].start,"lead")}
   for(const it of timed){
     if(prevEnd!==null&&it.start>prevEnd)h+=gapRow(prevEnd,it.start);
@@ -189,7 +192,7 @@ function renderTimeline(){
   }
   if(timed.length){
     const tailStart=isToday?Math.max(prevEnd,Math.ceil(now/15)*15):prevEnd;
-    h+=`<li class="tl-tail"><div class="tl-time"></div><div class="tl-rail"></div><button type="button" class="gapbtn" data-gap="${Math.min(tailStart,1410)},30">${isToday&&now>prevEnd?"Nothing else planned. Add something?":"Add after this"}</button></li>`;
+    h+=`<li class="tl-tail"><div class="tl-time"></div><div class="tl-rail"></div><div class="gapcol"><button type="button" class="gapadd" data-gap="${Math.min(tailStart,1410)},30"><span class="gapplus" aria-hidden="true">+</span>${isToday&&now>prevEnd?"Add task for later":"Add task after this"}</button></div></li>`;
   }
   $("timeline").innerHTML=h;
   $("dayEmpty").hidden=!!(timed.length||anytime.length);
