@@ -1,5 +1,5 @@
 /* Life Board offline shell. Bump VERSION whenever the app files change. */
-const VERSION = "lb-v4";
+const VERSION = "lb-v5";
 const SHELL = ["./", "./index.html", "./app.css", "./app.js", "./wheel.js", "./store.js", "./supabase.js",
   "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon-32.png"];
 
